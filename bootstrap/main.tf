@@ -57,3 +57,15 @@ resource "google_service_account_iam_member" "github_binding" {
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repo}"
 }
+
+resource "google_organization_iam_member" "terraform_folder_creator" {
+  org_id = var.org_id
+  role   = "roles/resourcemanager.folderCreator"
+  member = "serviceAccount:${google_service_account.terraform.email}"
+}
+
+resource "google_organization_iam_member" "terraform_org_viewer" {
+  org_id = var.org_id
+  role   = "roles/resourcemanager.organizationViewer"
+  member = "serviceAccount:${google_service_account.terraform.email}"
+}
