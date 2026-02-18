@@ -6,3 +6,8 @@ provider "google" {
 module "org" {
   source = "./org"
 }
+
+module "networking" {
+  source          = "./networking"
+  billing_account = var.billing_account
+}
