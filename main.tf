@@ -11,3 +11,8 @@ module "networking" {
   source          = "./networking"
   billing_account = var.billing_account
 }
+
+module "project_factory" {
+  source          = "./project-factory"
+  billing_account = var.billing_account
+}
