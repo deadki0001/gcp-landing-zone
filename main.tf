@@ -16,3 +16,15 @@ module "project_factory" {
   source          = "./project-factory"
   billing_account = var.billing_account
 }
+
+module "policies" {
+  source          = "./policies"
+  billing_account = var.billing_account
+}
+
+# Disabled on free tier - requires additional billing quota
+# Uncomment when running on a paid account or after quota increase
+# module "security" {
+#   source          = "./security"
+#   billing_account = var.billing_account
+# }
