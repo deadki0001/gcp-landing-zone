@@ -177,3 +177,16 @@ resource "google_project_service" "pubsub_api" {
   project = var.bootstrap_project
   service = "pubsub.googleapis.com"
 }
+
+# Billing Budget API - required to create budget alerts
+resource "google_project_service" "billing_budget_api" {
+  project = var.bootstrap_project
+  service = "billingbudgets.googleapis.com"
+}
+
+# Allow terraform-sa to create and manage organisation policies
+resource "google_organization_iam_member" "terraform_org_policy_admin" {
+  org_id = var.org_id
+  role   = "roles/orgpolicy.policyAdmin"
+  member = "serviceAccount:${google_service_account.terraform.email}"
+}
