@@ -69,3 +69,8 @@ resource "google_organization_iam_member" "terraform_org_viewer" {
   role   = "roles/resourcemanager.organizationViewer"
   member = "serviceAccount:${google_service_account.terraform.email}"
 }
+
+resource "google_project_service" "billing_api" {
+  project = var.bootstrap_project
+  service = "cloudbilling.googleapis.com"
+}
