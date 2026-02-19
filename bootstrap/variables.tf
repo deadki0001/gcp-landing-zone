@@ -9,3 +9,8 @@ variable "org_id" {
   description = "GCP Organisation ID"
   type        = string
 }
+
+variable "billing_account" {
+  description = "GCP Billing Account ID"
+  type        = string
+}
