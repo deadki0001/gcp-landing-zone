@@ -22,8 +22,7 @@ module "policies" {
   billing_account = var.billing_account
 }
 
-# Disabled on free tier - requires additional billing quota
-# Uncomment when running on a paid account or after quota increase
+# Disabled pending billing quota increase
 # module "security" {
 #   source          = "./security"
 #   billing_account = var.billing_account
