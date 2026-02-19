@@ -165,3 +165,15 @@ resource "google_billing_account_iam_member" "terraform_billing_user" {
   role               = "roles/billing.user"
   member             = "serviceAccount:${google_service_account.terraform.email}"
 }
+
+# Org Policy API - required to create and manage organisation policies
+resource "google_project_service" "orgpolicy_api" {
+  project = var.bootstrap_project
+  service = "orgpolicy.googleapis.com"
+}
+
+# Pub/Sub API - required for budget alert notifications
+resource "google_project_service" "pubsub_api" {
+  project = var.bootstrap_project
+  service = "pubsub.googleapis.com"
+}
