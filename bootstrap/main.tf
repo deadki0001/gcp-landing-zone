@@ -196,3 +196,9 @@ resource "google_organization_iam_member" "terraform_billing_budget_admin" {
   role   = "roles/billing.costsManager"
   member = "serviceAccount:${google_service_account.terraform.email}"
 }
+
+resource "google_billing_account_iam_member" "terraform_billing_budget_creator" {
+  billing_account_id = var.billing_account
+  role               = "roles/billing.admin"
+  member             = "serviceAccount:${google_service_account.terraform.email}"
+}

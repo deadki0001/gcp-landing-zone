@@ -14,10 +14,10 @@ resource "google_project" "dev" {
   # billing_account omitted - quota exhausted on free tier
 }
 
-resource "google_project_service" "dev_compute" {
-  project = google_project.dev.project_id
-  service = "compute.googleapis.com"
-}
+# resource "google_project_service" "dev_compute" {
+#   project = google_project.dev.project_id
+#   service = "compute.googleapis.com"
+# }
 
 # Production workloads project - sits in Production folder
 resource "google_project" "prod" {
