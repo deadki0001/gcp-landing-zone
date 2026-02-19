@@ -1,51 +1,41 @@
 # ============================================================================
-# DEVELOPMENT PROJECT
+# WORKLOADS PROJECT (Learning Environment - Free Tier)
 # ============================================================================
-# This project lives in the Development folder and hosts all dev workloads.
-# It is a Shared VPC service project, meaning it uses the networking project's
-# VPC rather than creating its own network infrastructure.
-resource "google_project" "dev" {
-  name            = "dev-workloads"
-  project_id      = "dev-workloads-lz-001"
-  folder_id       = "folders/946065792690"
+# In a production landing zone this would be two separate projects:
+# one for dev (folders/946065792690) and one for prod (folders/885620268842)
+# separated for security, billing isolation, and blast radius reduction.
+#
+# For free tier learning we combine into one project to stay within
+# GCP's billing quota limit on free accounts.
+# The architecture pattern is identical - only the project count differs.
+resource "google_project" "workloads" {
+  name            = "workloads"
+  project_id      = "workloads-lz-001"
+  folder_id       = "folders/946065792690"   # Sits inside the Development folder
   billing_account = var.billing_account
 }
 
-# Enable compute API so dev workloads can use networking resources
-resource "google_project_service" "dev_compute" {
-  project = google_project.dev.project_id
+# ============================================================================
+# COMPUTE API
+# ============================================================================
+# Must be enabled before the project can interact with any VPC or networking
+# resources from the shared VPC host project
+resource "google_project_service" "workloads_compute" {
+  project = google_project.workloads.project_id
   service = "compute.googleapis.com"
 }
 
-# Attach dev project to the shared VPC host project
-# This allows dev workloads to use subnets from the networking project
-resource "google_compute_shared_vpc_service_project" "dev_attachment" {
-  host_project    = "networking-host-lz-001"
-  service_project = google_project.dev.project_id
-  depends_on      = [google_project_service.dev_compute]
-}
-
 # ============================================================================
-# PRODUCTION PROJECT
+# SHARED VPC ATTACHMENT
 # ============================================================================
-# Same pattern as dev but sits in the Production folder.
-# Kept completely separate from dev for security and billing isolation.
-resource "google_project" "prod" {
-  name            = "prod-workloads"
-  project_id      = "prod-workloads-lz-001"
-  folder_id       = "folders/885620268842"
-  billing_account = var.billing_account
-}
-
-# Enable compute API so prod workloads can use networking resources
-resource "google_project_service" "prod_compute" {
-  project = google_project.prod.project_id
-  service = "compute.googleapis.com"
-}
-
-# Attach prod project to the shared VPC host project
-resource "google_compute_shared_vpc_service_project" "prod_attachment" {
+# Attaches this workloads project to the networking host project as a
+# service project. Once attached, workloads deployed here can use the
+# subnets defined in the networking module (dev-subnet, prod-subnet etc.)
+# without owning or managing the network themselves.
+#
+# AWS equivalent: accepting a RAM share from the network account
+resource "google_compute_shared_vpc_service_project" "workloads_attachment" {
   host_project    = "networking-host-lz-001"
-  service_project = google_project.prod.project_id
-  depends_on      = [google_project_service.prod_compute]
+  service_project = google_project.workloads.project_id
+  depends_on      = [google_project_service.workloads_compute]
 }
