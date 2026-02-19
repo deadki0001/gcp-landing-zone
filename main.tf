@@ -18,8 +18,9 @@ module "project_factory" {
 }
 
 module "policies" {
-  source          = "./policies"
-  billing_account = var.billing_account
+  source            = "./policies"
+  billing_account   = var.billing_account
+  bootstrap_project = "project-5a757d72-eb26-477c-bd9"
 }
 
 # Disabled pending billing quota increase
@@ -27,9 +28,3 @@ module "policies" {
 #   source          = "./security"
 #   billing_account = var.billing_account
 # }
-
-module "policies" {
-  source            = "./policies"
-  billing_account   = var.billing_account
-  bootstrap_project = "project-5a757d72-eb26-477c-bd9"
-}
