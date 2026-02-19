@@ -138,3 +138,10 @@ resource "google_billing_account_iam_member" "terraform_billing_user" {
   role               = "roles/billing.user"
   member             = "serviceAccount:${google_service_account.terraform.email}"
 }
+
+# Needs project creator permission at org level
+resource "google_organization_iam_member" "terraform_project_creator" {
+  org_id = var.org_id
+  role   = "roles/resourcemanager.projectCreator"
+  member = "serviceAccount:${google_service_account.terraform.email}"
+}
