@@ -8,10 +8,10 @@
 
 # Development workloads project - sits in Development folder
 resource "google_project" "dev" {
-  name            = "dev-workloads"
-  project_id      = "dev-workloads-lz-001"
-  folder_id       = "folders/946065792690"
-  billing_account = var.billing_account
+  name       = "dev-workloads"
+  project_id = "dev-workloads-lz-001"
+  folder_id  = "folders/946065792690"
+  # billing_account omitted - quota exhausted on free tier
 }
 
 resource "google_project_service" "dev_compute" {

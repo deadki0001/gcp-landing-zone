@@ -1,8 +1,9 @@
 provider "google" {
-  project = "project-5a757d72-eb26-477c-bd9"
-  region  = "europe-west1"
+  project               = "project-5a757d72-eb26-477c-bd9"
+  region                = "europe-west1"
+  user_project_override = true
+  billing_project       = "project-5a757d72-eb26-477c-bd9"
 }
-
 module "org" {
   source = "./org"
 }

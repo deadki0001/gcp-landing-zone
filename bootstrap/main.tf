@@ -190,3 +190,9 @@ resource "google_organization_iam_member" "terraform_org_policy_admin" {
   role   = "roles/orgpolicy.policyAdmin"
   member = "serviceAccount:${google_service_account.terraform.email}"
 }
+
+resource "google_organization_iam_member" "terraform_billing_budget_admin" {
+  org_id = var.org_id
+  role   = "roles/billing.costsManager"
+  member = "serviceAccount:${google_service_account.terraform.email}"
+}

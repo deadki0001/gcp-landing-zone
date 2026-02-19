@@ -15,7 +15,7 @@ resource "google_org_policy_policy" "no_public_ip" {
 
   spec {
     rules {
-      enforce = "TRUE"
+      deny_all = "TRUE"
     }
   }
 }
