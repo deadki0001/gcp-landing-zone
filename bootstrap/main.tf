@@ -38,6 +38,27 @@ resource "google_project_iam_member" "terraform_owner" {
   member  = "serviceAccount:${google_service_account.terraform.email}"
 }
 
+
+# Allow terraform-sa to create and manage GKE clusters
+resource "google_organization_iam_member" "terraform_container_admin" {
+  org_id = var.org_id
+  role   = "roles/container.admin"
+  member = "serviceAccount:${google_service_account.terraform.email}"
+}
+
+# Allow terraform-sa to create and manage Cloud SQL instances
+resource "google_organization_iam_member" "terraform_cloudsql_admin" {
+  org_id = var.org_id
+  role   = "roles/cloudsql.admin"
+  member = "serviceAccount:${google_service_account.terraform.email}"
+}
+
+# Allow terraform-sa to manage service networking for Cloud SQL private IP
+resource "google_organization_iam_member" "terraform_service_networking" {
+  org_id = var.org_id
+  role   = "roles/servicenetworking.networksAdmin"
+  member = "serviceAccount:${google_service_account.terraform.email}"
+}
 # ============================================================================
 # GITHUB ACTIONS INTEGRATION (Workload Identity Federation)
 # ============================================================================
@@ -68,9 +89,10 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "attribute.repository" = "assertion.repository"
   }
 
-  # Critical security control - only YOUR repo can authenticate
-  # Prevents any other GitHub repo from impersonating your pipeline
-  attribute_condition = "assertion.repository == '${var.github_repo}'"
+  # Allow both the landing zone and workloads repos to authenticate
+  # The repo-specific IAM bindings below further restrict which service
+  # account each repo can impersonate
+  attribute_condition = "assertion.repository in ['deadki0001/gcp-landing-zone', 'deadki0001/gcp-workloads']"
 }
 
 # Step 3: Allow GitHub Actions from your repo to impersonate terraform-sa
@@ -78,6 +100,15 @@ resource "google_service_account_iam_member" "github_binding" {
   service_account_id = google_service_account.terraform.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_repo}"
+}
+
+# Allow gcp-workloads repository to also authenticate via Workload Identity
+# This enables the workloads pipeline to deploy GKE, Cloud SQL, and Kubernetes
+# resources into the prod-workloads-lz-001 project
+resource "google_service_account_iam_member" "github_workloads_binding" {
+  service_account_id = google_service_account.terraform.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/deadki0001/gcp-workloads"
 }
 
 # ============================================================================
@@ -108,6 +139,25 @@ resource "google_project_service" "iam_api" {
 resource "google_project_service" "compute_api" {
   project = var.bootstrap_project
   service = "compute.googleapis.com"
+}
+
+# GKE API - required to create and manage Kubernetes clusters
+resource "google_project_service" "container_api" {
+  project = var.bootstrap_project
+  service = "container.googleapis.com"
+}
+
+# Cloud SQL API - required to create managed PostgreSQL instances
+resource "google_project_service" "sqladmin_api" {
+  project = var.bootstrap_project
+  service = "sqladmin.googleapis.com"
+}
+
+# Service Networking API - required for Cloud SQL private IP
+# Allows private connectivity between GKE and Cloud SQL without public internet
+resource "google_project_service" "service_networking_api" {
+  project = var.bootstrap_project
+  service = "servicenetworking.googleapis.com"
 }
 
 # ============================================================================

@@ -39,3 +39,23 @@ resource "google_compute_shared_vpc_service_project" "prod_attachment" {
   service_project = google_project.prod.project_id
   depends_on      = [google_project_service.prod_compute]
 }
+
+# ============================================================================
+# BASELINE APIS ON PROD PROJECT
+# ============================================================================
+# These foundational APIs must be enabled before any other service can be
+# managed on this project. Service Usage allows Terraform to enable/disable
+# other APIs. Cloud Resource Manager allows project-level resource management.
+# Without these two, every subsequent google_project_service resource fails.
+
+resource "google_project_service" "prod_service_usage" {
+  project            = google_project.prod.project_id
+  service            = "serviceusage.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_project_service" "prod_resource_manager" {
+  project            = google_project.prod.project_id
+  service            = "cloudresourcemanager.googleapis.com"
+  disable_on_destroy = false
+}
