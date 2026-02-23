@@ -91,3 +91,12 @@ resource "google_compute_shared_vpc_host_project" "host" {
   project    = google_project.networking.project_id
   depends_on = [google_project_service.networking_compute]
 }
+
+# Service Networking API must be enabled on the networking host project
+# because the Cloud SQL private IP peering connection is created against
+# the shared VPC which lives in networking-host-lz-001, not the workloads project
+resource "google_project_service" "networking_service_networking" {
+  project            = "networking-host-lz-001"
+  service            = "servicenetworking.googleapis.com"
+  disable_on_destroy = false
+}
