@@ -110,3 +110,23 @@ resource "google_project_service" "networking_container" {
   service            = "container.googleapis.com"
   disable_on_destroy = false
 }
+
+# Google APIs service account needs permission to use the shared VPC subnet
+# when creating GKE node instances. This is separate from the GKE robot SA.
+# Format: {PROJECT_NUMBER}@cloudservices.gserviceaccount.com
+resource "google_compute_subnetwork_iam_member" "cloudservices_subnet_user" {
+  project    = google_project.networking.project_id
+  region     = "europe-west1"
+  subnetwork = "prod-subnet"
+  role       = "roles/compute.networkUser"
+  member     = "serviceAccount:973898437899@cloudservices.gserviceaccount.com"
+}
+
+# GKE robot SA also needs subnet-level permission specifically
+resource "google_compute_subnetwork_iam_member" "gke_robot_subnet_user" {
+  project    = google_project.networking.project_id
+  region     = "europe-west1"
+  subnetwork = "prod-subnet"
+  role       = "roles/compute.networkUser"
+  member     = "serviceAccount:service-973898437899@container-engine-robot.iam.gserviceaccount.com"
+}
