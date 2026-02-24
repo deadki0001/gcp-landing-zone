@@ -48,7 +48,22 @@ resource "google_compute_subnetwork" "prod_subnet" {
   region        = "europe-west1"
   network       = google_compute_network.shared_vpc.id
   project       = google_project.networking.project_id
+
+  # Secondary ranges required for GKE on shared VPC
+  # pods range: each pod gets an IP from this range
+  # services range: each Kubernetes service gets an IP from this range
+  secondary_ip_range {
+    range_name    = "pods"
+    ip_cidr_range = "10.21.0.0/16"
+  }
+
+  secondary_ip_range {
+    range_name    = "services"
+    ip_cidr_range = "10.22.0.0/20"
+  }
 }
+
+
 
 resource "google_compute_subnetwork" "shared_subnet" {
   name          = "shared-services-subnet"
