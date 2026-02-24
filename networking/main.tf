@@ -7,19 +7,15 @@
 # rather than creating their own. This is the GCP Shared VPC pattern.
 # It sits inside the Networking folder created by the org module.
 resource "google_project" "networking" {
-  name            = "networking-host"           # Human-readable name in GCP console
-  project_id      = "networking-host-lz-001"    # Globally unique project identifier
-  folder_id       = "folders/454974647484"      # Places this inside the Networking folder
-  billing_account = var.billing_account         # Links to billing so resources can be created
+  name            = "networking-host"
+  project_id      = "networking-host-lz-001"
+  folder_id       = "folders/454974647484"
+  billing_account = var.billing_account
 }
 
 # ============================================================================
 # COMPUTE API
 # ============================================================================
-# Before you can create any networking resources (VPCs, subnets, firewalls),
-# the Compute Engine API must be enabled on the project.
-# Think of APIs like switches - they must be turned on before the service works.
-# All subsequent network resources depend on this being enabled first.
 resource "google_project_service" "networking_compute" {
   project = google_project.networking.project_id
   service = "compute.googleapis.com"
@@ -28,11 +24,6 @@ resource "google_project_service" "networking_compute" {
 # ============================================================================
 # SHARED VPC - HUB NETWORK
 # ============================================================================
-# This is the central hub network that all environments connect to.
-# auto_create_subnetworks = false means we manually define all subnets below,
-# giving us full control over IP ranges and region placement.
-# The depends_on ensures the Compute API is enabled before we try to create
-# any network resources, avoiding timing errors.
 resource "google_compute_network" "shared_vpc" {
   name                    = "shared-vpc"
   auto_create_subnetworks = false
@@ -43,13 +34,6 @@ resource "google_compute_network" "shared_vpc" {
 # ============================================================================
 # SUBNETS
 # ============================================================================
-# Each environment gets its own subnet within the shared VPC.
-# Using separate IP ranges (10.10, 10.20, 10.30) prevents overlap and makes
-# firewall rules and routing easier to manage.
-# All subnets are in europe-west1 to keep traffic within the same region.
-
-# Development subnet - used by workloads in the Development folder
-# IP range 10.10.0.0/24 gives 254 usable addresses for dev workloads
 resource "google_compute_subnetwork" "dev_subnet" {
   name          = "dev-subnet"
   ip_cidr_range = "10.10.0.0/24"
@@ -58,8 +42,6 @@ resource "google_compute_subnetwork" "dev_subnet" {
   project       = google_project.networking.project_id
 }
 
-# Production subnet - used by workloads in the Production folder
-# IP range 10.20.0.0/24 keeps prod traffic isolated from dev
 resource "google_compute_subnetwork" "prod_subnet" {
   name          = "prod-subnet"
   ip_cidr_range = "10.20.0.0/24"
@@ -68,9 +50,6 @@ resource "google_compute_subnetwork" "prod_subnet" {
   project       = google_project.networking.project_id
 }
 
-# Shared services subnet - used by central tools like logging, monitoring,
-# CI/CD agents, and other platform services used across all environments
-# IP range 10.30.0.0/24 keeps shared tooling on its own segment
 resource "google_compute_subnetwork" "shared_subnet" {
   name          = "shared-services-subnet"
   ip_cidr_range = "10.30.0.0/24"
@@ -82,29 +61,42 @@ resource "google_compute_subnetwork" "shared_subnet" {
 # ============================================================================
 # SHARED VPC HOST PROJECT DESIGNATION
 # ============================================================================
-# This resource promotes the networking project to a Shared VPC Host Project.
-# Once designated as a host, other projects (service projects) can attach to
-# this project's VPC and use its subnets without owning the network themselves.
-# This is the core of the hub-and-spoke networking model in GCP.
-# Example: the dev project will attach here and use dev-subnet above.
 resource "google_compute_shared_vpc_host_project" "host" {
   project    = google_project.networking.project_id
   depends_on = [google_project_service.networking_compute]
 }
 
-# Service Networking API must be enabled on the networking host project
-# because the Cloud SQL private IP peering connection is created against
-# the shared VPC which lives in networking-host-lz-001, not the workloads project
+# ============================================================================
+# SERVICE NETWORKING API
+# ============================================================================
+# Required for Cloud SQL private IP peering against the shared VPC
 resource "google_project_service" "networking_service_networking" {
   project            = "networking-host-lz-001"
   service            = "servicenetworking.googleapis.com"
   disable_on_destroy = false
 }
 
-# Grant GKE service account permission to use shared VPC host network
-# Required when deploying GKE clusters in a shared VPC from a service project
+# ============================================================================
+# GKE SHARED VPC PERMISSIONS
+# ============================================================================
+# When GKE clusters are created in a shared VPC service project, Google's
+# GKE robot service account needs permission to configure networking
+# on the host project. Without this, cluster creation fails with 403.
+#
+# service-{PROD_PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com
+# is automatically created by GCP when the Container API is enabled.
+
+# Allows the GKE service account to act as a host service agent
+# This is the primary permission needed for shared VPC GKE
 resource "google_project_iam_member" "gke_host_service_agent" {
   project = google_project.networking.project_id
-  role    = "roles/container.hostServiceAgent"
-  member = "serviceAccount:service-973898437899@container-engine-robot.iam.gserviceaccount.com"
+  role    = "roles/compute.hostServiceAgentUser"
+  member  = "serviceAccount:service-973898437899@container-engine-robot.iam.gserviceaccount.com"
+}
+
+# Allows the GKE service account to use the shared VPC network and subnets
+resource "google_project_iam_member" "gke_network_user" {
+  project = google_project.networking.project_id
+  role    = "roles/compute.networkUser"
+  member  = "serviceAccount:service-973898437899@container-engine-robot.iam.gserviceaccount.com"
 }
