@@ -75,28 +75,14 @@ resource "google_project_service" "networking_service_networking" {
   service            = "servicenetworking.googleapis.com"
   disable_on_destroy = false
 }
-
 # ============================================================================
 # GKE SHARED VPC PERMISSIONS
 # ============================================================================
-# When GKE clusters are created in a shared VPC service project, Google's
-# GKE robot service account needs permission to configure networking
-# on the host project. Without this, cluster creation fails with 403.
-#
-# service-{PROD_PROJECT_NUMBER}@container-engine-robot.iam.gserviceaccount.com
-# is automatically created by GCP when the Container API is enabled.
-
-# Allows the GKE service account to act as a host service agent
-# This is the primary permission needed for shared VPC GKE
+# Grants the GKE API service account permission to manage networking
+# resources in the shared VPC host project when deploying clusters
+# from the prod service project.
 resource "google_project_iam_member" "gke_host_service_agent" {
   project = google_project.networking.project_id
-  role    = "roles/compute.hostServiceAgentUser"
-  member  = "serviceAccount:service-973898437899@container-engine-robot.iam.gserviceaccount.com"
-}
-
-# Allows the GKE service account to use the shared VPC network and subnets
-resource "google_project_iam_member" "gke_network_user" {
-  project = google_project.networking.project_id
-  role    = "roles/compute.networkUser"
+  role    = "roles/container.serviceAgent"
   member  = "serviceAccount:service-973898437899@container-engine-robot.iam.gserviceaccount.com"
 }
