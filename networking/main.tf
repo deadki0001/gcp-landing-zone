@@ -100,3 +100,11 @@ resource "google_project_service" "networking_service_networking" {
   service            = "servicenetworking.googleapis.com"
   disable_on_destroy = false
 }
+
+# Grant GKE service account permission to use shared VPC host network
+# Required when deploying GKE clusters in a shared VPC from a service project
+resource "google_project_iam_member" "gke_host_service_agent" {
+  project = google_project.networking.project_id
+  role    = "roles/container.hostServiceAgent"
+  member = "serviceAccount:service-973898437899@container-engine-robot.iam.gserviceaccount.com"
+}
