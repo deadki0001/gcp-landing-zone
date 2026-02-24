@@ -101,3 +101,12 @@ resource "google_project_iam_member" "gke_host_service_agent" {
   role    = "roles/container.serviceAgent"
   member  = "serviceAccount:service-973898437899@container-engine-robot.iam.gserviceaccount.com"
 }
+
+# Container API must be enabled on the networking host project
+# when GKE clusters in service projects use shared VPC.
+# GKE creates a robot service account in the host project during cluster creation.
+resource "google_project_service" "networking_container" {
+  project            = google_project.networking.project_id
+  service            = "container.googleapis.com"
+  disable_on_destroy = false
+}
